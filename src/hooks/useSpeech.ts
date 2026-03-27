@@ -29,7 +29,6 @@ export function useSpeech(): UseSpeechReturn {
         if (result.isFinal) {
           const parsed = parseSpokenInput(result.transcript);
           setParsedData(parsed);
-          setIsListening(false);
         }
       },
       (error: string) => {
