@@ -35,6 +35,9 @@ export function useSpeech(): UseSpeechReturn {
       (error: string) => {
         console.error('Speech error:', error);
         setIsListening(false);
+      },
+      () => {
+        setIsListening(false);
       }
     );
   }, []);

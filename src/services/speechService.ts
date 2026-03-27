@@ -38,6 +38,7 @@ export interface SpeechResult {
 
 export type SpeechCallback = (result: SpeechResult) => void;
 export type ErrorCallback = (error: string) => void;
+export type EndCallback = () => void;
 
 class SpeechService {
   private recognition: SpeechRecognitionInstance | null = null;
@@ -65,7 +66,7 @@ class SpeechService {
     return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
   }
 
-  start(onResult: SpeechCallback, onError?: ErrorCallback): void {
+  start(onResult: SpeechCallback, onError?: ErrorCallback, onEnd?: EndCallback): void {
     if (!this.recognition) {
       onError?.('Speech recognition not supported');
       return;
@@ -90,6 +91,7 @@ class SpeechService {
 
     this.recognition.onend = () => {
       this.isListening = false;
+      onEnd?.();
     };
 
     this.recognition.start();
