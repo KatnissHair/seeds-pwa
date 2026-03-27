@@ -43,6 +43,10 @@ export type EndCallback = () => void;
 class SpeechService {
   private recognition: SpeechRecognitionInstance | null = null;
   private isListening = false;
+  private shouldRestart = false;
+  private onResultCallback: SpeechCallback | null = null;
+  private onErrorCallback: ErrorCallback | null = null;
+  private onEndCallback: EndCallback | null = null;
 
   constructor() {
     this.initRecognition();
@@ -60,6 +64,38 @@ class SpeechService {
     this.recognition.continuous = true;
     this.recognition.interimResults = true;
     this.recognition.lang = 'en-US';
+
+    this.recognition.onresult = (event: SpeechRecognitionEvent) => {
+      const result = event.results[event.resultIndex];
+      this.onResultCallback?.({
+        transcript: result[0].transcript,
+        isFinal: result.isFinal,
+      });
+    };
+
+    this.recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+      if (event.error === 'no-speech' || event.error === 'aborted') {
+        return;
+      }
+      this.isListening = false;
+      this.shouldRestart = false;
+      this.onErrorCallback?.(event.error);
+    };
+
+    this.recognition.onend = () => {
+      if (this.shouldRestart && this.isListening) {
+        try {
+          this.recognition?.start();
+        } catch {
+          this.isListening = false;
+          this.shouldRestart = false;
+          this.onEndCallback?.();
+        }
+      } else {
+        this.isListening = false;
+        this.onEndCallback?.();
+      }
+    };
   }
 
   isSupported(): boolean {
@@ -76,32 +112,30 @@ class SpeechService {
       return;
     }
 
-    this.recognition.onresult = (event: SpeechRecognitionEvent) => {
-      const result = event.results[event.resultIndex];
-      onResult({
-        transcript: result[0].transcript,
-        isFinal: result.isFinal,
-      });
-    };
-
-    this.recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-      this.isListening = false;
-      onError?.(event.error);
-    };
-
-    this.recognition.onend = () => {
-      this.isListening = false;
-      onEnd?.();
-    };
-
-    this.recognition.start();
+    this.onResultCallback = onResult;
+    this.onErrorCallback = onError || null;
+    this.onEndCallback = onEnd || null;
+    this.shouldRestart = true;
     this.isListening = true;
+
+    try {
+      this.recognition.start();
+    } catch {
+      this.isListening = false;
+      this.shouldRestart = false;
+      onError?.('Failed to start speech recognition');
+    }
   }
 
   stop(): void {
-    if (this.recognition && this.isListening) {
-      this.recognition.stop();
-      this.isListening = false;
+    this.shouldRestart = false;
+    this.isListening = false;
+    if (this.recognition) {
+      try {
+        this.recognition.stop();
+      } catch {
+        // Ignore errors when stopping
+      }
     }
   }
 
