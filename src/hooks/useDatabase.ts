@@ -52,6 +52,8 @@ export function useWeeklyLogs(referenceDate: Date = new Date()) {
   const [loading, setLoading] = useState(true);
   const [weekDates, setWeekDates] = useState<string[]>([]);
 
+  const dateKey = getDateString(referenceDate);
+
   useEffect(() => {
     const dates = getWeekDates(referenceDate);
     setWeekDates(dates);
@@ -63,7 +65,7 @@ export function useWeeklyLogs(referenceDate: Date = new Date()) {
       setLoading(false);
     };
     fetchLogs();
-  }, [referenceDate]);
+  }, [dateKey]);
 
   return { logs, loading, weekDates };
 }
