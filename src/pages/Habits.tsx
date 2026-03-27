@@ -7,10 +7,11 @@ import { getAllDailyLogs } from '../db/database';
 import type { Suggestion, Category } from '../types';
 
 export function Habits() {
-  const { habits, createHabit, removeHabit, toggleCompletion, getStreak } = useHabits();
+  const { habits, createHabit, removeHabit, toggleCompletion, getStreak, getWeeklyProgress, getMotivationalMessage } = useHabits();
   const [showAddForm, setShowAddForm] = useState(false);
   const [newHabitName, setNewHabitName] = useState('');
   const [newHabitCategory, setNewHabitCategory] = useState<Category>('sleep');
+  const [newHabitGoal, setNewHabitGoal] = useState(7);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
@@ -31,9 +32,11 @@ export function Habits() {
       name: newHabitName.trim(),
       category: newHabitCategory,
       isFromSuggestion: false,
+      goalPerWeek: newHabitGoal,
     });
 
     setNewHabitName('');
+    setNewHabitGoal(7);
     setShowAddForm(false);
   };
 
@@ -43,10 +46,16 @@ export function Habits() {
         name: suggestion.habitName,
         category: suggestion.category,
         isFromSuggestion: true,
+        goalPerWeek: 7,
       });
       setSuggestions(suggestions.filter(s => s.id !== suggestion.id));
     }
   };
+
+  const totalGoalsCompleted = habits.filter(h => {
+    const { percentage } = getWeeklyProgress(h);
+    return percentage >= 100;
+  }).length;
 
   return (
     <div className="p-4 pb-24">
@@ -58,6 +67,31 @@ export function Habits() {
           Build healthy routines, one day at a time
         </p>
       </header>
+
+      {/* Weekly Summary Card */}
+      {habits.length > 0 && (
+        <div className="bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl p-4 mb-6 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-emerald-100 text-sm">This Week</p>
+              <p className="text-2xl font-bold">{totalGoalsCompleted}/{habits.length} Goals</p>
+              <p className="text-emerald-100 text-sm">completed</p>
+            </div>
+            <div className="text-5xl">
+              {totalGoalsCompleted === habits.length && habits.length > 0 
+                ? '🏆' 
+                : totalGoalsCompleted > 0 
+                ? '💪' 
+                : '🎯'}
+            </div>
+          </div>
+          {totalGoalsCompleted === habits.length && habits.length > 0 && (
+            <p className="mt-2 text-emerald-100 text-sm">
+              Amazing! You've crushed all your goals this week! 🎉
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Add Habit Button */}
       <div className="flex gap-2 mb-6">
@@ -111,6 +145,27 @@ export function Habits() {
               <option value="stress">🧘 Stress</option>
             </select>
           </div>
+          <div className="mb-4">
+            <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">
+              Weekly Goal (days per week)
+            </label>
+            <div className="flex items-center gap-3">
+              <input
+                type="range"
+                min="1"
+                max="7"
+                value={newHabitGoal}
+                onChange={(e) => setNewHabitGoal(parseInt(e.target.value))}
+                className="flex-1 accent-emerald-500"
+              />
+              <span className="w-12 text-center text-lg font-bold text-emerald-600 dark:text-emerald-400">
+                {newHabitGoal}
+              </span>
+            </div>
+            <p className="text-xs text-gray-400 mt-1">
+              {newHabitGoal === 7 ? 'Every day' : newHabitGoal === 1 ? 'Once a week' : `${newHabitGoal} days per week`}
+            </p>
+          </div>
           <button
             type="submit"
             className="w-full py-2 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600 transition-colors"
@@ -144,6 +199,8 @@ export function Habits() {
         onToggle={toggleCompletion}
         onDelete={removeHabit}
         getStreak={getStreak}
+        getWeeklyProgress={getWeeklyProgress}
+        getMotivationalMessage={getMotivationalMessage}
       />
     </div>
   );

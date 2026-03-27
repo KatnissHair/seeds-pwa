@@ -89,6 +89,7 @@ export function useHabits() {
     const newHabit: Omit<Habit, 'id'> = {
       ...habit,
       completedDates: [],
+      goalPerWeek: habit.goalPerWeek || 7,
       createdAt: new Date(),
     };
     await addHabit(newHabit);
@@ -127,7 +128,36 @@ export function useHabits() {
     return streak;
   }, []);
 
-  return { habits, loading, createHabit, removeHabit, toggleCompletion, getStreak, refetch: fetchHabits };
+  const getWeeklyProgress = useCallback((habit: Habit): { completed: number; goal: number; percentage: number } => {
+    const weekDates = getWeekDates(new Date());
+    const completed = habit.completedDates.filter(date => weekDates.includes(date)).length;
+    const goal = habit.goalPerWeek || 7;
+    const percentage = Math.min(100, Math.round((completed / goal) * 100));
+    return { completed, goal, percentage };
+  }, []);
+
+  const getMotivationalMessage = useCallback((habit: Habit): { message: string; emoji: string } => {
+    const { completed, percentage } = getWeeklyProgress(habit);
+    const streak = getStreak(habit);
+
+    if (percentage >= 100) {
+      return { message: "Goal crushed! You're amazing!", emoji: "🏆" };
+    } else if (percentage >= 80) {
+      return { message: "Almost there! Keep pushing!", emoji: "💪" };
+    } else if (percentage >= 50) {
+      return { message: "Halfway! You've got this!", emoji: "🌟" };
+    } else if (streak >= 7) {
+      return { message: `${streak} day streak! Incredible!`, emoji: "🔥" };
+    } else if (streak >= 3) {
+      return { message: `${streak} days in a row! Nice!`, emoji: "⚡" };
+    } else if (completed > 0) {
+      return { message: "Great start! Keep it up!", emoji: "👍" };
+    } else {
+      return { message: "Start today! You can do it!", emoji: "🌱" };
+    }
+  }, [getWeeklyProgress, getStreak]);
+
+  return { habits, loading, createHabit, removeHabit, toggleCompletion, getStreak, getWeeklyProgress, getMotivationalMessage, refetch: fetchHabits };
 }
 
 export { getDateString, getWeekDates, db };

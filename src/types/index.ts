@@ -41,6 +41,7 @@ export interface Habit {
   category: 'sleep' | 'eat' | 'exercise' | 'water' | 'stress';
   isFromSuggestion: boolean;
   completedDates: string[];
+  goalPerWeek: number;
   createdAt: Date;
 }
 

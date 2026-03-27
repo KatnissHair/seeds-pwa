@@ -31,6 +31,7 @@ export function Home() {
         name: suggestion.habitName,
         category: suggestion.category,
         isFromSuggestion: true,
+        goalPerWeek: 7,
       });
     }
   };
